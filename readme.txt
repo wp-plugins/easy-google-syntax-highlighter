@@ -47,9 +47,9 @@ This plugin is an implementation of the [Google Syntax Highlighter 2.0](http://a
 
 == Frequently Asked Questions ==
 
-<h4>Q How do I get the best performance out of this plugin</h4>
+<h4>How do I get the best performance out of this plugin</h4>
 
-<p>A Firstly, you should disable any syntax that your blog doesn't use, especially if you are only using a few of the syntax brushes.  Secondly, if your blog has a footer, you should enable the option to put the brushes in the footer.</p>
+<p>Firstly, you should disable any syntax that your blog doesn't use, especially if you are only using a few of the syntax brushes.  Secondly, if your blog has a footer, you should enable the option to put the brushes in the footer.</p>
 
 == Changelog == 
 
