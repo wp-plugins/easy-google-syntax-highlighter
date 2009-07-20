@@ -10,7 +10,7 @@ An implementation of Alex Gorbachev's Google Syntax Highlighter with a front end
 
 == Description ==
 
-This plugin is an implementation of the [Google Syntax Highlighter 2.0](http://alexgorbatchev.com/wiki/SyntaxHighlighter) by Alex Gorbatchev with a front end to allow configuring all the global settings that are available.  Available settings include selecting themes and specifying languages to highlight.  Any language that is not selected will not be called by your blog which will improve page loading performance.
+This plugin is an implementation of the [Google Syntax Highlighter 2.0](http://alexgorbatchev.com/wiki/SyntaxHighlighter) by Alex Gorbatchev with a front end to allow configuring all the global settings that are available, such as selecting themes and specifying languages to highlight.  Any language that is not selected will not be called by your blog which will improve page loading performance.
 
 = Syntax Supported =
 
