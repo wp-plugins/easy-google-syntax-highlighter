@@ -3,7 +3,7 @@
 Plugin Name: Easy Google Syntax Highlighter
 Plugin URI: http://blog.burlock.org/easy-google-syntax-highlighter/
 Description: This plugin is an implementation of the <a href='http://alexgorbatchev.com/wiki/SyntaxHighlighter'>Google Syntax Highlighter 2.0</a> with a front end to allow configuring all the global settings that are available.  Features include selecting themes and specifying languages to highlight.  Any language that is not selected will not be called by your blog which will improve page loading performance.
-Version: 1.0.0
+Version: 1.1.0
 Author: Neil Burlock
 Author URI: http://blog.burlock.org
 */
@@ -31,6 +31,7 @@ define('key_theme', 'easy_gsh_theme', true);
 define('key_in_footer', 'easy_gsh_in_footer', true);
 define('key_window_width', 'easy_gsh_window_width', true);
 define('key_brushes', 'easy_gsh_brushes', true);
+define('key_auto_brushes', 'auto_brushes', true);
 
 define('blogger_mode_default', key_false, true);
 define('clipboard_swf_default', key_true, true);
@@ -51,6 +52,7 @@ define('theme_default', 'shThemeDefault.css', true);
 define('in_footer_default', key_false, true);
 define('window_width_default', '100%', true);
 define('brushes_default', 'a:21:{i:0;s:13:"shBrushAS3.js";i:1;s:14:"shBrushBash.js";i:2;s:16:"shBrushCSharp.js";i:3;s:13:"shBrushCpp.js";i:4;s:13:"shBrushCss.js";i:5;s:16:"shBrushDelphi.js";i:6;s:14:"shBrushDiff.js";i:7;s:16:"shBrushGroovy.js";i:8;s:17:"shBrushJScript.js";i:9;s:14:"shBrushJava.js";i:10;s:16:"shBrushJavaFX.js";i:11;s:14:"shBrushPerl.js";i:12;s:13:"shBrushPhp.js";i:13;s:15:"shBrushPlain.js";i:14;s:20:"shBrushPowerShell.js";i:15;s:16:"shBrushPython.js";i:16;s:14:"shBrushRuby.js";i:17;s:15:"shBrushScala.js";i:18;s:13:"shBrushSql.js";i:19;s:12:"shBrushVb.js";i:20;s:13:"shBrushXml.js";}', true);
+define('auto_brushes_default', key_false, true);
 
 add_option(key_blogger_mode, blogger_mode_default, 'Blogger integration. If you are hosting on blogger.com, you must turn this on');
 add_option(key_clipboard_swf, clipboard_swf_default, 'Facilitates clipboard functionality');
@@ -71,6 +73,7 @@ add_option(key_theme, theme_default, 'Select a theme for displaying the code');
 add_option(key_in_footer, in_footer_default, 'Put the brush java in the footer to speed up loading.  May not be supported by all themes');
 add_option(key_window_width, window_width_default, '');
 add_option(key_brushes, brushes_default, '');
+add_option(key_auto_brushes, auto_brushes_default, '');
 
 add_action('admin_init', 'easy_admin_init');
 function easy_admin_init() {
@@ -94,6 +97,7 @@ function easy_admin_init() {
 		register_setting('easy-google-syntax-highlighter', key_window_width, '');
 		register_setting('easy-google-syntax-highlighter', key_brushes, '');
 		register_setting('easy-google-syntax-highlighter', key_blogger_mode, '');
+		register_setting('easy-google-syntax-highlighter', key_auto_brushes, '');
 	}
 }
 
@@ -297,6 +301,11 @@ function easy_gsh_options_page() {
 			$value = in_footer_default;
 		update_option(key_in_footer, $value);
 
+		// auto_brushes: bool
+		$value = $_POST[key_auto_brushes];
+		if (($value != key_true) && ($value != key_false))
+			$value = auto_brushes_default;
+		update_option(key_auto_brushes, $value);
 
 		// window_width: str
 		$value = $_POST[key_window_width];
@@ -390,6 +399,11 @@ function easy_gsh_options_page() {
 				<?php edit_brushes(key_brushes) ?>
 				<tr><td colspan=3><h3>Custom Settings</h3></td></tr>			
 		      	<tr>
+					<td>Auto Brushes</td>
+					<td><?php edit_boolean(key_auto_brushes) ?></td>
+					<td>When On, brushes will be automatically selected based on the body of the page being displayed, for maximum loading performance.</td>
+				</tr>
+		      	<tr>
 					<td>Brushes In Footer</td>
 					<td><?php edit_boolean(key_in_footer) ?></td>
 					<td>When On, brushes are loaded in the footer, improving performance.  Only for themes with a footer.</td>
@@ -461,81 +475,172 @@ function easy_gsh_insert_core() {
 	echo "<link href='$path/styles/$theme' type='text/css' rel='stylesheet' id='shTheme'/>";
 }
 
+// key_auto_brushes
+if (get_option(key_auto_brushes) == key_true)
+	add_filter('the_content', 'easy_gsh_scan_for_brushes', 9);
+
+// If requested, scan the body of the document for references to brushes that are required and generate the SQL required to include them
+function easy_gsh_scan_for_brushes($content) {
+	$selected = array();
+	global $easy_gsh_selected;
+	if ($easy_gsh_selected != '')
+		$selected = unserialize($easy_gsh_selected);
+	
+	$path = get_option('siteurl') .'/wp-content/plugins/' . basename(dirname(__FILE__));
+	
+	// Generate a regex tag - /i isn't working for on my testing box for some reason, so do it the hard way
+	$tag = '';
+	$array = preg_split('//', get_option(key_tag_name), -1, PREG_SPLIT_NO_EMPTY);
+	foreach ($array as $char) {
+		$tag .= '['.strtolower($char).strtoupper($char).']';
+	}
+	$tag = 'pre';
+
+	// Fetch the key_tag_name tags in the body
+	if (preg_match_all('/<'.$tag.'.+?>/', $content, $matches) > 0) {
+				// Got the brush, translate it into the equivalent js file
+				$brushes = array('shBrushAS3.js' => array('as3', 'actionscript3'),
+								 'shBrushBash.js' => array('bash', 'shell'),
+								 'shBrushCSharp.js' => array('c-sharp', 'csharp'),
+								 'shBrushCpp.js' => array('cpp', 'c'),
+								 'shBrushCss.js' => array('css'),
+								 'shBrushDelphi.js' => array('delphi', 'pas', 'pascal'),
+								 'shBrushDiff.js' => array('diff', 'patch'),
+								 'shBrushGroovy.js' => array('groovy'),
+								 'shBrushJScript.js' => array('js', 'jscript', 'javascript'),
+								 'shBrushJava.js' => array('java'),
+								 'shBrushJavaFX.js' => array('jfx', 'javafx'),
+								 'shBrushPerl.js' => array('perl', 'pl'),
+								 'shBrushPhp.js' => array('php'),
+								 'shBrushPlain.js' => array('plain', 'text'),
+								 'shBrushPowerShell.js' => array('ps', 'powershell'),
+								 'shBrushPython.js' => array('py', 'python'),
+								 'shBrushRuby.js' => array('rails', 'ror', 'ruby'),
+								 'shBrushScala.js' => array('scala'),
+								 'shBrushSql.js' => array('sql'),
+								 'shBrushVb.js' => array('vb', 'vbnet'),
+							 	 'shBrushXml.js' => array('xml', 'xhtml', 'xslt', 'html', 'xhtml'));
+				$files = array_keys($brushes);
+		
+		// For each tag, extract the class clause, assuming it is like "brush: brushname"
+		foreach ($matches[0] as $match) {
+			if (preg_match_all('/brush *: *[a-zA-Z0-9_\.]*/', $match, $brush) == 1) {
+				$brush = explode(":", $brush[0][0]);
+				$brush = strtolower(trim($brush[1]));
+				foreach ($files as $file) {
+					if (in_array($brush, $brushes[$file])) {
+						if (!in_array($file, $selected)) {
+							array_push($selected, $file);
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+		
+	// Save the selected brushes list
+	$easy_gsh_selected = serialize($selected);
+
+	return $content;
+}
+
 // key_in_footer
 if (get_option(key_in_footer) == key_true) add_action('wp_footer','easy_gsh_insert_brushes');
 else add_action('wp_head','easy_gsh_insert_brushes');
-function easy_gsh_insert_brushes(){
+
+function easy_gsh_insert_brushes() {
 	$path = get_option('siteurl') .'/wp-content/plugins/' . basename(dirname(__FILE__));
 
-	// key_brushes
-	echo "<script class='javascript' src='$path/scripts/shCore.js'></script>\n";
-	$brushes = unserialize(get_option(key_brushes));
-	foreach ($brushes as $brush) {
-		echo "<script class='javascript' src='$path/scripts/$brush'></script>\n";
+	// key_auto_brushes
+	if (get_option(key_auto_brushes) == key_false) {
+		// key_brushes
+		echo "<script class='javascript' src='$path/scripts/shCore.js'></script>\n";
+		$brushes = unserialize(get_option(key_brushes));
+		foreach ($brushes as $brush) {
+			echo "<script class='javascript' src='$path/scripts/$brush'></script>\n";
+		}
+		echo easy_gsh_insert_jscript();
+	} else {
+		// Show only brushes found on the page.  If nothing is found, then don't add any javascript at all
+		global $easy_gsh_selected;
+		$selected = unserialize($easy_gsh_selected);
+		if (sizeof($selected) > 0) {
+			$included_js = "";
+			echo "<script type='text/javascript' src='$path/scripts/shCore.js'></script>\n";
+			foreach ($selected as $file) {
+				echo "<script type='text/javascript' src='$path/scripts/$file'></script>\n";
+			}
+			echo easy_gsh_insert_jscript();
+		}
 	}
+}
 
-	echo "<script type='text/javascript'>\n";
+// Returns the script necessary to set the admin's options
+function easy_gsh_insert_jscript() {
+	$script = "<script type='text/javascript'>\n";
 
 	// key_blogger_mode
 	if (get_option(key_blogger_mode) != blogger_mode_default)
-		echo "SyntaxHighlighter.config.bloggerMode = ".get_option(key_strip_brs).";\n";
+		$script .= "SyntaxHighlighter.config.bloggerMode = ".get_option(key_strip_brs).";\n";
 
 	// key_toolbar_item_width
 	if (get_option(key_toolbar_item_width) <> toolbar_item_width_default)
-		echo "SyntaxHighlighter.config.toolbarItemWidth = ".get_option(key_toolbar_item_width).";\n";
+		$script .=  "SyntaxHighlighter.config.toolbarItemWidth = ".get_option(key_toolbar_item_width).";\n";
 	
 	// key toolbar_item_height
 	if (get_option(key_toolbar_item_height) <> toolbar_item_height_default)
-		echo "SyntaxHighlighter.config.toolbarItemHeight = ".get_option(key_toolbar_item_height).";\n";
+		$script .=  "SyntaxHighlighter.config.toolbarItemHeight = ".get_option(key_toolbar_item_height).";\n";
 
 	// key_strip_brs
 	if (get_option(key_strip_brs) != strip_brs_default)
-		echo "SyntaxHighlighter.config.stripBrs = ".get_option(key_strip_brs).";\n";
+		$script .=  "SyntaxHighlighter.config.stripBrs = ".get_option(key_strip_brs).";\n";
 
 	// key_tag_name
 	if (get_option(key_tag_name) != tag_name_default)
-		echo "SyntaxHighlighter.config.tagName = ".get_option(key_tag_name).";\n";
+		$script .=  "SyntaxHighlighter.config.tagName = ".get_option(key_tag_name).";\n";
 
 	// key_expand_source
 	if (get_option(key_expand_source) != expand_source_default)
-		echo "SyntaxHighlighter.config.strings.expandSource = '".get_option(key_expand_source)."';\n";
+		$script .=  "SyntaxHighlighter.config.strings.expandSource = '".get_option(key_expand_source)."';\n";
 
 	// key_view_source
 	if (get_option(key_view_source) != view_source_default)
-		echo "SyntaxHighlighter.config.strings.viewSource = '".get_option(key_view_source)."';\n";
+		$script .=  "SyntaxHighlighter.config.strings.viewSource = '".get_option(key_view_source)."';\n";
 
 	// key_copy_to_clipboard
 	if (get_option(key_copy_to_clipboard) != copy_to_clipboard_default)
-		echo "SyntaxHighlighter.config.strings.copyToClipboard = '".get_option(key_copy_to_clipboard)."';\n";
+		$script .=  "SyntaxHighlighter.config.strings.copyToClipboard = '".get_option(key_copy_to_clipboard)."';\n";
 
 	// key_copy_to_clipboard_confirmation
 	if (get_option(key_copy_to_clipboard_confirmation) != copy_to_clipboard_confirmation_default)
-		echo "SyntaxHighlighter.config.strings.copyToClipboardConfirmation = '".get_option(key_copy_to_clipboard_confirmation)."';\n";
+		$script .=  "SyntaxHighlighter.config.strings.copyToClipboardConfirmation = '".get_option(key_copy_to_clipboard_confirmation)."';\n";
 
 	// key_print
 	if (get_option(key_print) != print_default)
-		echo "SyntaxHighlighter.config.strings.print = '".get_option(key_print)."';\n";
+		$script .=  "SyntaxHighlighter.config.strings.print = '".get_option(key_print)."';\n";
 
 	// key_help
 	if (get_option(key_help) != help_default)
-		echo "SyntaxHighlighter.config.strings.help = '".get_option(key_help)."';\n";
+		$script .=  "SyntaxHighlighter.config.strings.help = '".get_option(key_help)."';\n";
 
 	// key_alert
 	if (get_option(key_alert) != alert_default)
-		echo "SyntaxHighlighter.config.strings.alert = '".get_option(key_alert)."';\n";
+		$script .=  "SyntaxHighlighter.config.strings.alert = '".get_option(key_alert)."';\n";
 
 	// key_no_brush
 	if (get_option(key_no_brush) != no_brush_default)
-		echo "SyntaxHighlighter.config.strings.noBrush = '".get_option(key_no_brush)."';\n";
+		$script .=  "SyntaxHighlighter.config.strings.noBrush = '".get_option(key_no_brush)."';\n";
 
 	// key_brush_not_html_script
 	if (get_option(key_brush_not_html_script) != brush_not_html_script_default)
-		echo "SyntaxHighlighter.config.strings.brushNotHtmlScript = '".get_option(key_brush_not_html_script)."';\n";		
+		$script .=  "SyntaxHighlighter.config.strings.brushNotHtmlScript = '".get_option(key_brush_not_html_script)."';\n";		
 
 	// key_clipboard_swf
-	if (get_option(key_clipboard_swf) == key_true) echo "SyntaxHighlighter.config.clipboardSwf = '$path/scripts/clipboard.swf';\n";
-	echo "SyntaxHighlighter.all();</script>\n";
-	echo "</script>\n";
+	// if (get_option(key_clipboard_swf) == key_true) $script .=  "SyntaxHighlighter.config.clipboardSwf = '$path/scripts/clipboard.swf';\n";
+	if (get_option(key_clipboard_swf) == key_true) $script .=  "SyntaxHighlighter.config.clipboardSwf = 'http://blog.burlock.org/wp-content/plugins/easy-google-syntax-highlighter/scripts/clipboard.swf';\n";
+	$script .=  "SyntaxHighlighter.all();</script>\n";
+	return $script;
 }
 
 ?>
