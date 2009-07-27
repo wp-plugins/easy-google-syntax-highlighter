@@ -4,7 +4,7 @@ Donate link:
 Tags: code, google, syntax, highlighter, blog, html
 Requires at least:2.0.0
 Tested up to: 2.8.2
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 
 An implementation of Alex Gorbachev's Google Syntax Highlighter with a front end to allow configuration.
 
@@ -33,12 +33,15 @@ Default, Django, Emacs, FadeToGrey, Midnight, RDark
 
 == Changelog == 
 
-= 1.0 =
-* First version
+= 1.1.1 =
+* Fixed incorrect path for script copy swf file
 
-= 1.1 =
+= 1.1.0 =
 * Option to automatically include language brushes that are referenced on the blog page being viewed
 * Minor tweaks to allow this plugin to work with wp-minify
+
+= 1.0.0 =
+* First version
 
 == Screenshots ==
 

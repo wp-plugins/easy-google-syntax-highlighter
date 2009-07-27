@@ -3,7 +3,7 @@
 Plugin Name: Easy Google Syntax Highlighter
 Plugin URI: http://blog.burlock.org/easy-google-syntax-highlighter/
 Description: This plugin is an implementation of the <a href='http://alexgorbatchev.com/wiki/SyntaxHighlighter'>Google Syntax Highlighter 2.0</a> with a front end to allow configuring all the global settings that are available.  Features include selecting themes and specifying languages to highlight.  Any language that is not selected will not be called by your blog which will improve page loading performance.
-Version: 1.1.0
+Version: 1.1.1
 Author: Neil Burlock
 Author URI: http://blog.burlock.org
 */
@@ -637,9 +637,11 @@ function easy_gsh_insert_jscript() {
 		$script .=  "SyntaxHighlighter.config.strings.brushNotHtmlScript = '".get_option(key_brush_not_html_script)."';\n";		
 
 	// key_clipboard_swf
-	// if (get_option(key_clipboard_swf) == key_true) $script .=  "SyntaxHighlighter.config.clipboardSwf = '$path/scripts/clipboard.swf';\n";
-	if (get_option(key_clipboard_swf) == key_true) $script .=  "SyntaxHighlighter.config.clipboardSwf = 'http://blog.burlock.org/wp-content/plugins/easy-google-syntax-highlighter/scripts/clipboard.swf';\n";
-	$script .=  "SyntaxHighlighter.all();</script>\n";
+	if (get_option(key_clipboard_swf) == key_true) {
+		$path = get_option('siteurl') .'/wp-content/plugins/' . basename(dirname(__FILE__));
+		$script .=  "SyntaxHighlighter.config.clipboardSwf = '$path/scripts/clipboard.swf';\n";
+	}
+	$script .=  "SyntaxHighlighter.all();</ScripT>\n";
 	return $script;
 }
 
