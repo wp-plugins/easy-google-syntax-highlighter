@@ -3,7 +3,7 @@ Contributors: Neil Burlock
 Donate link:
 Tags: code, google, syntax, highlighter, blog, html
 Requires at least:2.0.0
-Tested up to: 2.8.2
+Tested up to: 2.8.3
 Stable tag: 1.1.1
 
 An implementation of Alex Gorbachev's Google Syntax Highlighter with a front end to allow configuration.
