@@ -3,7 +3,7 @@
 Plugin Name: Easy Google Syntax Highlighter
 Plugin URI: http://blog.burlock.org/easy-google-syntax-highlighter/
 Description: This plugin is an implementation of the <a href='http://alexgorbatchev.com/wiki/SyntaxHighlighter'>Google Syntax Highlighter 2.0</a> with a front end to allow configuring all the global settings that are available.  Features include selecting themes and specifying languages to highlight.  Any language that is not selected will not be called by your blog which will improve page loading performance.
-Version: 1.1.1
+Version: 1.1.2
 Author: Neil Burlock
 Author URI: http://blog.burlock.org
 */
@@ -555,10 +555,10 @@ function easy_gsh_insert_brushes() {
 	// key_auto_brushes
 	if (get_option(key_auto_brushes) == key_false) {
 		// key_brushes
-		echo "<script class='javascript' src='$path/scripts/shCore.js'></script>\n";
+		echo "<script type='text/javascript' src='$path/scripts/shCore.js'></script>\n";
 		$brushes = unserialize(get_option(key_brushes));
 		foreach ($brushes as $brush) {
-			echo "<script class='javascript' src='$path/scripts/$brush'></script>\n";
+			echo "<script type='text/javascript' src='$path/scripts/$brush'></script>\n";
 		}
 		echo easy_gsh_insert_jscript();
 	} else {
