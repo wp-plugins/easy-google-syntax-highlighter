@@ -3,7 +3,7 @@
 Plugin Name: Easy Google Syntax Highlighter
 Plugin URI: http://blog.burlock.org/easy-google-syntax-highlighter/
 Description: This plugin is an implementation of the <a href='http://alexgorbatchev.com/wiki/SyntaxHighlighter'>Google Syntax Highlighter 2.0</a> with a front end to allow configuring all the global settings that are available.  Features include selecting themes and specifying languages to highlight.  Any language that is not selected will not be called by your blog which will improve page loading performance.
-Version: 1.2.0
+Version: 1.2.1
 Author: Neil Burlock
 Author URI: http://blog.burlock.org
 */
@@ -28,11 +28,11 @@ define('key_alert', 'easy_gsh_alert', true);
 define('key_no_brush', 'easy_gsh_no_brush', true);
 define('key_brush_not_html_script', 'easy_gsh_brush_not_html_script', true);
 define('key_theme', 'easy_gsh_theme', true);
-define('key_in_footer', 'easy_gsh_in_footer', true);
+define('key_in_footer', 'easy_gsh_brushes_in_footer', true);
 define('key_window_width', 'easy_gsh_window_width', true);
 define('key_brushes', 'easy_gsh_brushes', true);
-define('key_auto_brushes', 'auto_brushes', true);
-define('key_default_tag_brush', 'default_tag_brush', true);
+define('key_auto_brushes', 'easy_gsh_auto_brushes', true);
+define('key_default_tag_brush', 'easy_gsh_default_tag_brush', true);
 
 define('default_tag_brush_default', '', true);
 define('blogger_mode_default', key_false, true);
@@ -141,30 +141,6 @@ function edit_themes($key) {
 		}
 	}
 	echo "</select>";
-}
-
-function get_brushes() {
-  return array('shBrushAS3.js' => array('as3', 'actionscript3'),
-  						 'shBrushBash.js' => array('bash', 'shell'),
-							 'shBrushCSharp.js' => array('c-sharp', 'csharp'),
-							 'shBrushCpp.js' => array('cpp', 'c'),
-							 'shBrushCss.js' => array('css'),
-							 'shBrushDelphi.js' => array('delphi', 'pas', 'pascal'),
-							 'shBrushDiff.js' => array('diff', 'patch'),
-							 'shBrushGroovy.js' => array('groovy'),
-							 'shBrushJScript.js' => array('js', 'jscript', 'javascript'),
-							 'shBrushJava.js' => array('java'),
-							 'shBrushJavaFX.js' => array('jfx', 'javafx'),
-							 'shBrushPerl.js' => array('perl', 'pl'),
-							 'shBrushPhp.js' => array('php'),
-							 'shBrushPlain.js' => array('plain', 'text'),
-							 'shBrushPowerShell.js' => array('ps', 'powershell'),
-							 'shBrushPython.js' => array('py', 'python'),
-							 'shBrushRuby.js' => array('rails', 'ror', 'ruby'),
-							 'shBrushScala.js' => array('scala'),
-							 'shBrushSql.js' => array('sql'),
-							 'shBrushVb.js' => array('vb', 'vbnet'),
-						 	 'shBrushXml.js' => array('xml', 'xhtml', 'xslt', 'html', 'xhtml'));
 }
 
 // A drop down list of the brushes that are available
@@ -402,6 +378,8 @@ function easy_gsh_options_page() {
 		update_option(key_in_footer, in_footer_default);
 		update_option(key_window_width, window_width_default);
 		update_option(key_brushes, brushes_default);
+		update_option(key_brushes_default, auto_brushes_default);
+		update_option(key_default_tag_brush, default_tag_brush_default);
 
 		echo "<div class='updated fade'><p><strong>Easy Google Syntax Highlighter settings reset to defaults.</strong></p></div>";
 	}
@@ -451,11 +429,12 @@ function easy_gsh_options_page() {
 				<tr><td colspan=3><h3>Enabled Brushes</h3></td></tr>
 				<?php edit_brushes(key_brushes) ?>
 				<tr><td colspan=3><h3>Custom Settings</h3></td></tr>			
-		      	<tr>
+	      	<tr>
 					<td>Auto Brushes</td>
 					<td><?php edit_boolean(key_auto_brushes) ?></td>
 					<td>When On, brushes will be automatically selected based on the body of the page being displayed, for maximum loading performance.</td>
 				</tr>
+			  <tr><td colspan=3><b>** For Auto Brushes to work, Brushes in Footer must also be enabled **</b></td></tr>			          
       	<tr>
 					<td>Brushes In Footer</td>
 					<td><?php edit_boolean(key_in_footer) ?></td>
@@ -554,7 +533,27 @@ function easy_gsh_scan_for_brushes($content) {
 	// Fetch the key_tag_name tags in the body
 	if (preg_match_all('/<'.$tag.'.+?>/', $content, $matches) > 0) {
 				// Got the brush, translate it into the equivalent js file
-				$brushes = get_brushes();
+				$brushes = array('shBrushAS3.js' => array('as3', 'actionscript3'),
+  						 'shBrushBash.js' => array('bash', 'shell'),
+							 'shBrushCSharp.js' => array('c-sharp', 'csharp'),
+							 'shBrushCpp.js' => array('cpp', 'c'),
+							 'shBrushCss.js' => array('css'),
+							 'shBrushDelphi.js' => array('delphi', 'pas', 'pascal'),
+							 'shBrushDiff.js' => array('diff', 'patch'),
+							 'shBrushGroovy.js' => array('groovy'),
+							 'shBrushJScript.js' => array('js', 'jscript', 'javascript'),
+							 'shBrushJava.js' => array('java'),
+							 'shBrushJavaFX.js' => array('jfx', 'javafx'),
+							 'shBrushPerl.js' => array('perl', 'pl'),
+							 'shBrushPhp.js' => array('php'),
+							 'shBrushPlain.js' => array('plain', 'text'),
+							 'shBrushPowerShell.js' => array('ps', 'powershell'),
+							 'shBrushPython.js' => array('py', 'python'),
+							 'shBrushRuby.js' => array('rails', 'ror', 'ruby'),
+							 'shBrushScala.js' => array('scala'),
+							 'shBrushSql.js' => array('sql'),
+							 'shBrushVb.js' => array('vb', 'vbnet'),
+						 	 'shBrushXml.js' => array('xml', 'xhtml', 'xslt', 'html', 'xhtml'));
 				$files = array_keys($brushes);
 		
 		// For each tag, extract the class clause, assuming it is like "brush: brushname"
@@ -590,10 +589,10 @@ function easy_gsh_insert_brushes() {
 	// key_auto_brushes
 	if (get_option(key_auto_brushes) == key_false) {
 		// key_brushes
-		echo "<script type='javascript' src='$path/scripts/shCore.js'></script>\n";
+		echo "<script type='text/javascript' src='$path/scripts/shCore.js'></script>\n";
 		$brushes = unserialize(get_option(key_brushes));
 		foreach ($brushes as $brush) {
-			echo "<script type='javascript' src='$path/scripts/$brush'></script>\n";
+			echo "<script type='text/javascript' src='$path/scripts/$brush'></script>\n";
 		}
 		echo easy_gsh_insert_jscript();
 	} else {

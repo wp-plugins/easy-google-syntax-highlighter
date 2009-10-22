@@ -4,7 +4,7 @@ Donate link:
 Tags: code, google, syntax, highlighter, blog, html
 Requires at least:2.0.0
 Tested up to: 2.8.5
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 
 An implementation of Alex Gorbachev's Google Syntax Highlighter with a front end to allow configuration.
 
@@ -32,6 +32,11 @@ Default, Django, Emacs, FadeToGrey, Midnight, RDark
 </p>
 
 == Changelog == 
+
+= 1.2.1 =
+* Added a message warning against using Auto Brushes without Brushes in Footer
+* The reset button on Settings wasn't resetting the Default Brush option
+* Changed the internal name for Auto Brushes to something less generic. Please check Auto Brush settings after installing this update.
 
 = 1.2.0 =
 * Updated to version 2.1.364 of Alex Gorbachev's highlighter script
