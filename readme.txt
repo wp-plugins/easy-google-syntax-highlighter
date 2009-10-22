@@ -3,14 +3,14 @@ Contributors: Neil Burlock
 Donate link:
 Tags: code, google, syntax, highlighter, blog, html
 Requires at least:2.0.0
-Tested up to: 2.8.4
-Stable tag: 1.1.2
+Tested up to: 2.8.5
+Stable tag: 1.2.0
 
 An implementation of Alex Gorbachev's Google Syntax Highlighter with a front end to allow configuration.
 
 == Description ==
 
-This plugin is an implementation of the [Google Syntax Highlighter 2.0](http://alexgorbatchev.com/wiki/SyntaxHighlighter) by Alex Gorbatchev with a front end to allow configuring all the global settings that are available, such having the plugin automatically include languages to highlight, thereby improving page loading performance.
+This plugin is an implementation of the [Syntax Highlighter 2.1.364](http://alexgorbatchev.com/wiki/SyntaxHighlighter) by Alex Gorbatchev with a front end to allow configuring all the global settings that are available, such having the plugin automatically include languages to highlight, thereby improving page loading performance.
 
 = Syntax Supported =
 
@@ -33,8 +33,11 @@ Default, Django, Emacs, FadeToGrey, Midnight, RDark
 
 == Changelog == 
 
-= 1.1.2 =
-* Changed "class='javascript'" to "type='javascript'" in a couple of places (thanks Markus)
+= 1.2.0 =
+* Updated to version 2.1.364 of Alex Gorbachev's highlighter script
+* New feature to use a default brush for tags that don't specify a brush (thanks to gjulian for the suggestion)
+* Fixed a bug that stopped a custom tag being used when Auto Brushes was enabled
+* Removed redundant code
 
 = 1.1.1 =
 * Fixed incorrect path for script copy swf file

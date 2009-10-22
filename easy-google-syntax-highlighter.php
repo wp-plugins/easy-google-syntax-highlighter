@@ -3,7 +3,7 @@
 Plugin Name: Easy Google Syntax Highlighter
 Plugin URI: http://blog.burlock.org/easy-google-syntax-highlighter/
 Description: This plugin is an implementation of the <a href='http://alexgorbatchev.com/wiki/SyntaxHighlighter'>Google Syntax Highlighter 2.0</a> with a front end to allow configuring all the global settings that are available.  Features include selecting themes and specifying languages to highlight.  Any language that is not selected will not be called by your blog which will improve page loading performance.
-Version: 1.1.2
+Version: 1.2.0
 Author: Neil Burlock
 Author URI: http://blog.burlock.org
 */
@@ -32,7 +32,9 @@ define('key_in_footer', 'easy_gsh_in_footer', true);
 define('key_window_width', 'easy_gsh_window_width', true);
 define('key_brushes', 'easy_gsh_brushes', true);
 define('key_auto_brushes', 'auto_brushes', true);
+define('key_default_tag_brush', 'default_tag_brush', true);
 
+define('default_tag_brush_default', '', true);
 define('blogger_mode_default', key_false, true);
 define('clipboard_swf_default', key_true, true);
 define('toolbar_item_width_default', '16', true);
@@ -54,6 +56,7 @@ define('window_width_default', '100%', true);
 define('brushes_default', 'a:21:{i:0;s:13:"shBrushAS3.js";i:1;s:14:"shBrushBash.js";i:2;s:16:"shBrushCSharp.js";i:3;s:13:"shBrushCpp.js";i:4;s:13:"shBrushCss.js";i:5;s:16:"shBrushDelphi.js";i:6;s:14:"shBrushDiff.js";i:7;s:16:"shBrushGroovy.js";i:8;s:17:"shBrushJScript.js";i:9;s:14:"shBrushJava.js";i:10;s:16:"shBrushJavaFX.js";i:11;s:14:"shBrushPerl.js";i:12;s:13:"shBrushPhp.js";i:13;s:15:"shBrushPlain.js";i:14;s:20:"shBrushPowerShell.js";i:15;s:16:"shBrushPython.js";i:16;s:14:"shBrushRuby.js";i:17;s:15:"shBrushScala.js";i:18;s:13:"shBrushSql.js";i:19;s:12:"shBrushVb.js";i:20;s:13:"shBrushXml.js";}', true);
 define('auto_brushes_default', key_false, true);
 
+add_option(key_default_tag_brush, default_tag_brush_default, 'An <b>enabled</b> brush to use for all tags that don\'t have a brush specified');
 add_option(key_blogger_mode, blogger_mode_default, 'Blogger integration. If you are hosting on blogger.com, you must turn this on');
 add_option(key_clipboard_swf, clipboard_swf_default, 'Facilitates clipboard functionality');
 add_option(key_strip_brs, strip_brs_default, 'If your software adds &lt;br&gt; tags at the end of each line, this option allows you to ignore those. ');
@@ -98,6 +101,7 @@ function easy_admin_init() {
 		register_setting('easy-google-syntax-highlighter', key_brushes, '');
 		register_setting('easy-google-syntax-highlighter', key_blogger_mode, '');
 		register_setting('easy-google-syntax-highlighter', key_auto_brushes, '');
+		register_setting('easy-google-syntax-highlighter', key_default_tag_brush, '');
 	}
 }
 
@@ -139,10 +143,58 @@ function edit_themes($key) {
 	echo "</select>";
 }
 
+function get_brushes() {
+  return array('shBrushAS3.js' => array('as3', 'actionscript3'),
+  						 'shBrushBash.js' => array('bash', 'shell'),
+							 'shBrushCSharp.js' => array('c-sharp', 'csharp'),
+							 'shBrushCpp.js' => array('cpp', 'c'),
+							 'shBrushCss.js' => array('css'),
+							 'shBrushDelphi.js' => array('delphi', 'pas', 'pascal'),
+							 'shBrushDiff.js' => array('diff', 'patch'),
+							 'shBrushGroovy.js' => array('groovy'),
+							 'shBrushJScript.js' => array('js', 'jscript', 'javascript'),
+							 'shBrushJava.js' => array('java'),
+							 'shBrushJavaFX.js' => array('jfx', 'javafx'),
+							 'shBrushPerl.js' => array('perl', 'pl'),
+							 'shBrushPhp.js' => array('php'),
+							 'shBrushPlain.js' => array('plain', 'text'),
+							 'shBrushPowerShell.js' => array('ps', 'powershell'),
+							 'shBrushPython.js' => array('py', 'python'),
+							 'shBrushRuby.js' => array('rails', 'ror', 'ruby'),
+							 'shBrushScala.js' => array('scala'),
+							 'shBrushSql.js' => array('sql'),
+							 'shBrushVb.js' => array('vb', 'vbnet'),
+						 	 'shBrushXml.js' => array('xml', 'xhtml', 'xslt', 'html', 'xhtml'));
+}
+
+// A drop down list of the brushes that are available
+function edit_brush_list($key) {
+	$raw_files = array_diff(scandir(dirname(__FILE__)."/scripts/"), array('.', '..', 'shCore.js'));
+	
+	// Only looking for shBrush*.js
+	// Remove any other non brush files from the array
+	$files = array();
+  array_push($files, "");
+	foreach ($raw_files as $file) {
+		if (eregi("shBrush.*.\.js$", $file))		
+			array_push($files, $file);
+	}
+
+  // Create a dropdown list showing the files
+	echo "<select name='$key' id='$key'>";
+  foreach ($files as $file) {
+    $brush = str_replace('shBrush', '', str_replace('.js', '', $file));
+	  echo "<option value='".$brush."'";
+	  if (get_option($key) == $brush) 
+		  echo " selected='selected'";
+	  echo ">".$brush."</option>";
+  }
+	echo "</select>";
+}
+
 // Retrieve a list of available brushes and return them as an array of boolean select boxes
 function edit_brushes($key) {
 	$brushes = unserialize(get_option($key));
-	
 	$raw_files = array_diff(scandir(dirname(__FILE__)."/scripts/"), array('.', '..', 'shCore.js'));
 	
 	// Only looking for shBrush*.js
@@ -198,12 +250,6 @@ function add_easy_gsh_options_page() {
 function easy_gsh_options_page() {
 	if (isset($_POST['info_update'])) {
 		// Save the options
-
-		// blogger_mode: bool
-		//$value = $_POST[key_blogger_mode];
-		//if (($value != key_true) && ($value != key_false))
-		//	$value = blogger_mode_default;
-		//update_option(key_blogger_mode, $value);
 
 		// clipboard_swf: bool
 		$value = $_POST[key_clipboard_swf];
@@ -313,6 +359,12 @@ function easy_gsh_options_page() {
 		else $value = encode_str($value);
 		update_option(key_window_width, $value);
 
+    // default tag brush
+		$value = $_POST[key_default_tag_brush];
+		if ($value == '') $value = default_tag_brush_default;
+		else $value = encode_str($value);
+		update_option(default_tag_brush, $value);
+
 		// brushes: str
 		$brushes = array();
 		$brush_files = unserialize(stripslashes($_POST["brush_files"]));
@@ -330,6 +382,7 @@ function easy_gsh_options_page() {
 	} else if (isset($_POST['info_reset'])) {
 		
 		// Reset to defaults
+		update_option(key_default_tag_brush, default_tag_brush_default);
 		update_option(key_blogger_mode, blogger_mode_default);
 		update_option(key_clipboard_swf, clipboard_swf_default);
 		update_option(key_toolbar_item_width, toolbar_item_width_default);
@@ -403,10 +456,15 @@ function easy_gsh_options_page() {
 					<td><?php edit_boolean(key_auto_brushes) ?></td>
 					<td>When On, brushes will be automatically selected based on the body of the page being displayed, for maximum loading performance.</td>
 				</tr>
-		      	<tr>
+      	<tr>
 					<td>Brushes In Footer</td>
 					<td><?php edit_boolean(key_in_footer) ?></td>
 					<td>When On, brushes are loaded in the footer, improving performance.  Only for themes with a footer.</td>
+				</tr>
+      	<tr>
+					<td>Default Brush <?php echo get_option(key_default_tag_brush); ?></td>
+					<td><?php edit_brush_list(key_default_tag_brush) ?></td>
+					<td>An <b>enabled</b> brush to use for all tags that don't have a brush specified</td>
 				</tr>
 				<tr><td colspan=3><h3>Strings</h3></td></tr>
 		      	<tr>
@@ -487,39 +545,16 @@ function easy_gsh_scan_for_brushes($content) {
 		$selected = unserialize($easy_gsh_selected);
 	
 	$path = get_option('siteurl') .'/wp-content/plugins/' . basename(dirname(__FILE__));
-	
-	// Generate a regex tag - /i isn't working for on my testing box for some reason, so do it the hard way
-	$tag = '';
-	$array = preg_split('//', get_option(key_tag_name), -1, PREG_SPLIT_NO_EMPTY);
-	foreach ($array as $char) {
-		$tag .= '['.strtolower($char).strtoupper($char).']';
-	}
-	$tag = 'pre';
+	$tag = get_option(key_tag_name);
+
+  // Find any tags that don't have a brush specified and set them to the default
+  if (get_option(key_default_tag_brush) != '') 
+    $content = preg_replace('/<'.$tag.'+\s*>/', '<pre class="brush: '.strtolower(get_option(key_default_tag_brush)).'">', $content);
 
 	// Fetch the key_tag_name tags in the body
 	if (preg_match_all('/<'.$tag.'.+?>/', $content, $matches) > 0) {
 				// Got the brush, translate it into the equivalent js file
-				$brushes = array('shBrushAS3.js' => array('as3', 'actionscript3'),
-								 'shBrushBash.js' => array('bash', 'shell'),
-								 'shBrushCSharp.js' => array('c-sharp', 'csharp'),
-								 'shBrushCpp.js' => array('cpp', 'c'),
-								 'shBrushCss.js' => array('css'),
-								 'shBrushDelphi.js' => array('delphi', 'pas', 'pascal'),
-								 'shBrushDiff.js' => array('diff', 'patch'),
-								 'shBrushGroovy.js' => array('groovy'),
-								 'shBrushJScript.js' => array('js', 'jscript', 'javascript'),
-								 'shBrushJava.js' => array('java'),
-								 'shBrushJavaFX.js' => array('jfx', 'javafx'),
-								 'shBrushPerl.js' => array('perl', 'pl'),
-								 'shBrushPhp.js' => array('php'),
-								 'shBrushPlain.js' => array('plain', 'text'),
-								 'shBrushPowerShell.js' => array('ps', 'powershell'),
-								 'shBrushPython.js' => array('py', 'python'),
-								 'shBrushRuby.js' => array('rails', 'ror', 'ruby'),
-								 'shBrushScala.js' => array('scala'),
-								 'shBrushSql.js' => array('sql'),
-								 'shBrushVb.js' => array('vb', 'vbnet'),
-							 	 'shBrushXml.js' => array('xml', 'xhtml', 'xslt', 'html', 'xhtml'));
+				$brushes = get_brushes();
 				$files = array_keys($brushes);
 		
 		// For each tag, extract the class clause, assuming it is like "brush: brushname"
@@ -555,10 +590,10 @@ function easy_gsh_insert_brushes() {
 	// key_auto_brushes
 	if (get_option(key_auto_brushes) == key_false) {
 		// key_brushes
-		echo "<script type='text/javascript' src='$path/scripts/shCore.js'></script>\n";
+		echo "<script type='javascript' src='$path/scripts/shCore.js'></script>\n";
 		$brushes = unserialize(get_option(key_brushes));
 		foreach ($brushes as $brush) {
-			echo "<script type='text/javascript' src='$path/scripts/$brush'></script>\n";
+			echo "<script type='javascript' src='$path/scripts/$brush'></script>\n";
 		}
 		echo easy_gsh_insert_jscript();
 	} else {
@@ -579,10 +614,6 @@ function easy_gsh_insert_brushes() {
 // Returns the script necessary to set the admin's options
 function easy_gsh_insert_jscript() {
 	$script = "<script type='text/javascript'>\n";
-
-	// key_blogger_mode
-	if (get_option(key_blogger_mode) != blogger_mode_default)
-		$script .= "SyntaxHighlighter.config.bloggerMode = ".get_option(key_strip_brs).";\n";
 
 	// key_toolbar_item_width
 	if (get_option(key_toolbar_item_width) <> toolbar_item_width_default)
